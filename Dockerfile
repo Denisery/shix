@@ -17,13 +17,23 @@ RUN apt-get update && apt-get upgrade -y && \
     software-properties-common \
     python3 \
     python3-pip \
+    python3-venv \
     nodejs \
     npm && \
     # Install the latest Node.js
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
     # Clean up
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy Flask application files
+COPY app.py /app/
+COPY requirements.txt /app/
+
+# Create and activate a virtual environment
+RUN python3 -m venv /app/venv && \
+    /app/venv/bin/pip install --upgrade pip && \
+    /app/venv/bin/pip install -r requirements.txt
 
 # Download the file
 RUN wget https://s3.amazonaws.com/sshx/sshx-x86_64-unknown-linux-musl.tar.gz
@@ -34,15 +44,8 @@ RUN tar -xzvf sshx-x86_64-unknown-linux-musl.tar.gz
 # Set permissions for the extracted binary
 RUN chmod +x sshx
 
-# Copy Flask application files
-COPY app.py /app/
-COPY requirements.txt /app/
-
-# Install Python dependencies
-RUN pip3 install -r requirements.txt
-
 # Expose Flask server port and any required ports for sshx
 EXPOSE 22 8000
 
 # Run both sshx and Flask server
-CMD ["sh", "-c", "./sshx & python3 app.py"]
+CMD ["sh", "-c", "./sshx & /app/venv/bin/python app.py"]
