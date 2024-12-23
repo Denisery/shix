@@ -20,7 +20,7 @@ RUN apt-get update && apt-get upgrade -y && \
     nodejs \
     npm && \
     # Install the latest Node.js
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
     # Clean up
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -28,17 +28,21 @@ RUN apt-get update && apt-get upgrade -y && \
 # Download the file
 RUN wget https://s3.amazonaws.com/sshx/sshx-x86_64-unknown-linux-musl.tar.gz
 
-# Extract the file
+# Extract the tar.gz archive
 RUN tar -xzvf sshx-x86_64-unknown-linux-musl.tar.gz
 
-# Expose required ports (modify based on sshx requirements)
-EXPOSE 22
-
-# Set permissions for the extracted binary (optional)
+# Set permissions for the extracted binary
 RUN chmod +x sshx
 
-# Verify installations
-RUN node -v && npm -v && python3 --version && pip3 --version
+# Copy Flask application files
+COPY app.py /app/
+COPY requirements.txt /app/
 
-# Set the entry point to run sshx
-CMD ["./sshx"]
+# Install Python dependencies
+RUN pip3 install -r requirements.txt
+
+# Expose Flask server port and any required ports for sshx
+EXPOSE 22 8000
+
+# Run both sshx and Flask server
+CMD ["sh", "-c", "./sshx & python3 app.py"]
